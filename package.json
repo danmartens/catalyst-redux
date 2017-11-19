@@ -1,0 +1,33 @@
+{
+  "name": "catalyst-redux",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "setupFiles": ["regenerator-runtime/runtime"]
+  },
+  "dependencies": {
+    "axios": "^0.17.1",
+    "dot-prop-immutable": "^1.4.0",
+    "lodash": "^4.17.4",
+    "react": "^16.1.1",
+    "react-dom": "^16.1.1",
+    "react-redux": "^5.0.6",
+    "redux": "^3.7.2",
+    "redux-saga": "^0.16.0"
+  },
+  "devDependencies": {
+    "babel-jest": "^21.2.0",
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-regenerator": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "flow-bin": "^0.59.0",
+    "jest": "^21.2.1",
+    "regenerator-runtime": "^0.11.0"
+  }
+}
