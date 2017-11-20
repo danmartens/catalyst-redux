@@ -3,7 +3,9 @@ import { createStore, applyMiddleware, combineReducers } from 'redux';
 import createSagaMiddleware from 'redux-saga';
 import createResourceModule from '../createResourceModule';
 
-const Resources = createResourceModule(['posts', 'comments'])('resources');
+const Resources = createResourceModule({
+  resourceTypes: ['posts', 'comments']
+})('resources');
 const initialState = Resources.reducer();
 const findAllType = Resources.actions.findAll('posts').type;
 
@@ -62,8 +64,8 @@ const stateWithData = Resources.reducer(initialState, action);
 function createResourceStore(initialResourcesState = initialState) {
   const sagaMiddleware = createSagaMiddleware();
   const store = createStore(
-    combineReducers({ resources: Resources.reducer }),
-    { resources: initialResourcesState },
+    combineReducers({ [Resources.name]: Resources.reducer }),
+    { [Resources.name]: initialResourcesState },
     applyMiddleware(sagaMiddleware)
   );
 

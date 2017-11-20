@@ -11,7 +11,7 @@ import type {
 import buildRecord from '../utils/buildRecord';
 
 export function find(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType,
   resourceID: ?ResourceID
 ) {
@@ -19,20 +19,20 @@ export function find(
     return null;
   }
 
-  return buildRecord(state.resources, resourceType, resourceID);
+  return buildRecord(state, resourceType, resourceID);
 }
 
 export function findAll(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType
 ): Array<*> {
-  return Object.keys(
-    state.resources.resources[resourceType] || {}
-  ).map(resourceId => find(state, resourceType, resourceId));
+  return Object.keys(state.resources[resourceType] || {}).map(resourceId =>
+    find(state, resourceType, resourceId)
+  );
 }
 
 export function resourceStatus(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType,
   resourceID: ?ResourceID
 ): ResourceStatus {
@@ -40,7 +40,7 @@ export function resourceStatus(
     return null;
   }
 
-  const statusesForType = state.resources.resourceStatus[resourceType];
+  const statusesForType = state.resourceStatus[resourceType];
 
   if (statusesForType == null || typeof statusesForType === 'string') {
     return null;
@@ -50,10 +50,10 @@ export function resourceStatus(
 }
 
 export function resourcesStatus(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType
 ): ResourceStatus {
-  const status = state.resources.resourceStatus[resourceType];
+  const status = state.resourceStatus[resourceType];
 
   if (typeof status !== 'string') {
     return null;
@@ -63,7 +63,7 @@ export function resourcesStatus(
 }
 
 export function resourceForClientID(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType,
   resourceClientID: ?ResourceClientID
 ): ?Object {
@@ -71,14 +71,14 @@ export function resourceForClientID(
     return null;
   }
 
-  const newResourceIDMap = state.resources.newResourceIDMap[resourceType] || {};
+  const newResourceIDMap = state.newResourceIDMap[resourceType] || {};
   const resourceID = newResourceIDMap[resourceClientID];
 
   return find(state, resourceType, resourceID);
 }
 
 export function newResourceStatus(
-  state: { resources: ResourceModuleState },
+  state: ResourceModuleState,
   resourceType: ResourceType,
   resourceClientID: ?ResourceClientID
 ): ResourceStatus {
@@ -86,7 +86,7 @@ export function newResourceStatus(
     return null;
   }
 
-  const newStatusesForType = state.resources.newResourceStatus[resourceType];
+  const newStatusesForType = state.newResourceStatus[resourceType];
 
   if (newStatusesForType == null) {
     return null;

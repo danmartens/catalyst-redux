@@ -11,30 +11,46 @@ import destroy from './resource/operations/destroy';
 
 import * as selectors from './resource/selectors';
 
-export default function createResourceModule(resourceTypes: Array<string>) {
-  const resourceTypesMap = {};
+export default function createResourceModule({
+  resourceTypes
+}: {
+  resourceTypes: Array<string>
+}) {
+  return (moduleName: string) => {
+    const resourceTypesMap = {};
 
-  resourceTypes.forEach((resourceType: string) => {
-    resourceTypesMap[resourceType] = {};
-  });
+    resourceTypes.forEach((resourceType: string) => {
+      resourceTypesMap[resourceType] = {};
+    });
 
-  const initialState: ResourceModuleState = {
-    resources: { ...resourceTypesMap },
-    newResources: { ...resourceTypesMap },
-    resourceRelationships: { ...resourceTypesMap },
-    resourceStatus: { ...resourceTypesMap },
-    newResourceStatus: { ...resourceTypesMap },
-    newResourceIDMap: { ...resourceTypesMap }
+    const mappedSelectors = {};
+
+    for (const name in selectors) {
+      if (selectors.hasOwnProperty(name)) {
+        mappedSelectors[name] = (state: Object, ...args: Array<*>) => {
+          return selectors[name](state[moduleName], ...args);
+        };
+      }
+    }
+
+    const initialState: ResourceModuleState = {
+      resources: { ...resourceTypesMap },
+      newResources: { ...resourceTypesMap },
+      resourceRelationships: { ...resourceTypesMap },
+      resourceStatus: { ...resourceTypesMap },
+      newResourceStatus: { ...resourceTypesMap },
+      newResourceIDMap: { ...resourceTypesMap }
+    };
+
+    return createModule({
+      initialState,
+      operations: {
+        findAll,
+        create,
+        update,
+        destroy
+      },
+      selectors: mappedSelectors
+    })(moduleName);
   };
-
-  return createModule({
-    initialState,
-    operations: {
-      findAll,
-      create,
-      update,
-      destroy
-    },
-    selectors
-  });
 }
