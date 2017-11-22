@@ -1,10 +1,13 @@
 {
-  "presets": ["react", "env"],
+  "presets": ["react"],
   "plugins": [
     "transform-flow-strip-types",
-    "transform-regenerator",
-    "transform-async-to-generator",
     "transform-object-rest-spread",
     "transform-class-properties"
-  ]
+  ],
+  "env": {
+    "test": {
+      "presets": ["react", "env"]
+    }
+  }
 }
