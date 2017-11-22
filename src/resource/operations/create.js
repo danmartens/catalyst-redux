@@ -60,131 +60,137 @@ export type ErrorAction = {
   }
 };
 
-export default createAsyncOperation({
-  actionType: 'CREATE',
-  actionCreator(
-    resourceType: ResourceType,
-    attributes: { [key: string]: null | string | number | boolean },
-    options?: {
-      relationships?: {
-        [RelationshipName]: { data: Relationship | Array<Relationship> }
+export default function({ requestConfig }: { requestConfig: Object }) {
+  return createAsyncOperation({
+    actionType: 'CREATE',
+    actionCreator(
+      resourceType: ResourceType,
+      attributes: { [key: string]: null | string | number | boolean },
+      options?: {
+        relationships?: {
+          [RelationshipName]: { data: Relationship | Array<Relationship> }
+        }
       }
-    }
-  ): Action {
-    return {
-      status: null,
-      payload: {
-        clientID: uniqueId('c'),
-        resourceType,
-        attributes,
-        options
-      }
-    };
-  },
-  reducer(
-    state: ResourceModuleState,
-    action: Action | PendingAction | SuccessAction | ErrorAction
-  ): ResourceModuleState {
-    switch (action.status) {
-      case 'pending': {
-        const { clientID, resourceType, attributes } = action.payload;
-
-        return setNewResourceStatus(
-          addNewResource(state, clientID, {
-            type: resourceType,
-            attributes
-          }),
+    ): Action {
+      return {
+        status: null,
+        payload: {
+          clientID: uniqueId('c'),
           resourceType,
-          clientID,
-          'create.pending'
-        );
-      }
+          attributes,
+          options
+        }
+      };
+    },
+    reducer(
+      state: ResourceModuleState,
+      action: Action | PendingAction | SuccessAction | ErrorAction
+    ): ResourceModuleState {
+      switch (action.status) {
+        case 'pending': {
+          const { clientID, resourceType, attributes } = action.payload;
 
-      case 'success': {
-        const resourceType = getResourceType(action.payload.data);
-
-        const { data } = action.payload;
-
-        if (resourceType != null && !Array.isArray(data)) {
-          return setNewResourceIDMap(
-            setNewResourceStatus(
-              addResources(state, action.payload),
-              resourceType,
-              action.payload.clientID,
-              'create.success'
-            ),
+          return setNewResourceStatus(
+            addNewResource(state, clientID, {
+              type: resourceType,
+              attributes
+            }),
             resourceType,
-            action.payload.clientID,
-            data.id
+            clientID,
+            'create.pending'
           );
         }
 
-        break;
+        case 'success': {
+          const resourceType = getResourceType(action.payload.data);
+
+          const { data } = action.payload;
+
+          if (resourceType != null && !Array.isArray(data)) {
+            return setNewResourceIDMap(
+              setNewResourceStatus(
+                addResources(state, action.payload),
+                resourceType,
+                action.payload.clientID,
+                'create.success'
+              ),
+              resourceType,
+              action.payload.clientID,
+              data.id
+            );
+          }
+
+          break;
+        }
+
+        case 'error': {
+          const { clientID, resourceType } = action.payload;
+
+          return setNewResourceStatus(
+            state,
+            resourceType,
+            clientID,
+            'create.error'
+          );
+        }
       }
 
-      case 'error': {
+      return state;
+    },
+    *saga(action: Action & { type: string }) {
+      if (action.status === null) {
         const { clientID, resourceType } = action.payload;
 
-        return setNewResourceStatus(
-          state,
-          resourceType,
-          clientID,
-          'create.error'
-        );
-      }
-    }
-
-    return state;
-  },
-  *saga(action: Action & { type: string }) {
-    if (action.status === null) {
-      const { clientID, resourceType } = action.payload;
-
-      yield put({
-        type: action.type,
-        status: 'pending',
-        payload: action.payload
-      });
-
-      try {
-        const data = yield call(createRequest, action);
-
         yield put({
           type: action.type,
-          status: 'success',
-          payload: {
-            resourceType,
-            clientID,
-            ...data
-          }
+          status: 'pending',
+          payload: action.payload
         });
-      } catch (error) {
-        yield put({
-          type: action.type,
-          status: 'error',
-          payload: {
-            resourceType,
-            clientID,
-            error
-          }
-        });
+
+        try {
+          const data = yield call(createRequest, action, requestConfig);
+
+          yield put({
+            type: action.type,
+            status: 'success',
+            payload: {
+              resourceType,
+              clientID,
+              ...data
+            }
+          });
+        } catch (error) {
+          yield put({
+            type: action.type,
+            status: 'error',
+            payload: {
+              resourceType,
+              clientID,
+              error
+            }
+          });
+        }
       }
     }
-  }
-});
+  });
+}
 
-function createRequest(action: Action) {
+function createRequest(action: Action, requestConfig: Object) {
   const { resourceType } = action.payload;
   const url = `/api/${resourceType}`;
 
   return request
-    .post(url, {
-      data: {
-        type: action.payload.resourceType,
-        attributes: action.payload.attributes,
-        relationships:
-          action.payload.options && action.payload.options.relationships
-      }
-    })
+    .post(
+      url,
+      {
+        data: {
+          type: action.payload.resourceType,
+          attributes: action.payload.attributes,
+          relationships:
+            action.payload.options && action.payload.options.relationships
+        }
+      },
+      requestConfig
+    )
     .then(({ data }) => data);
 }

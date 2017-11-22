@@ -12,9 +12,11 @@ import destroy from './resource/operations/destroy';
 import * as selectors from './resource/selectors';
 
 export default function createResourceModule({
-  resourceTypes
+  resourceTypes,
+  requestConfig = {}
 }: {
-  resourceTypes: Array<string>
+  resourceTypes: Array<string>,
+  requestConfig: {}
 }) {
   return (moduleName: string) => {
     const resourceTypesMap = {};
@@ -45,10 +47,10 @@ export default function createResourceModule({
     return createModule({
       initialState,
       operations: {
-        findAll,
-        create,
-        update,
-        destroy
+        findAll: findAll({ requestConfig }),
+        create: create({ requestConfig }),
+        update: update({ requestConfig }),
+        destroy: destroy({ requestConfig })
       },
       selectors: mappedSelectors
     })(moduleName);

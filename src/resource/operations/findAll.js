@@ -20,10 +20,8 @@ export type Action = {
   payload: {
     resourceType: ResourceType,
     attributes: { [key: string]: null | string | number | boolean },
-    options?: {
-      relationships?: {
-        [RelationshipName]: { data: Relationship | Array<Relationship> }
-      }
+    options: {
+      include?: Array<string>
     }
   }
 };
@@ -48,84 +46,86 @@ export type ErrorAction = {
   }
 };
 
-export default createAsyncOperation({
-  actionType: 'FIND_ALL',
-  actionCreator(
-    resourceType: ResourceType,
-    options: { include?: Array<string> } = {}
-  ) {
-    return {
-      status: null,
-      payload: {
-        resourceType,
-        options
-      }
-    };
-  },
-  reducer(
-    state: ResourceModuleState,
-    action: Action | PendingAction | SuccessAction
-  ): ResourceModuleState {
-    const { resourceType } = action.payload;
-
-    switch (action.status) {
-      case 'pending': {
-        return setResourcesStatus(state, resourceType, 'find.pending');
-      }
-
-      case 'success': {
-        return setResourcesStatus(
-          addResources(state, action.payload),
+export default function({ requestConfig }: { requestConfig: Object }) {
+  return createAsyncOperation({
+    actionType: 'FIND_ALL',
+    actionCreator(
+      resourceType: ResourceType,
+      options: { include?: Array<string> } = {}
+    ) {
+      return {
+        status: null,
+        payload: {
           resourceType,
-          'find.success'
-        );
-      }
-
-      case 'error': {
-        return setResourcesStatus(state, resourceType, 'find.error');
-      }
-
-      default:
-        return state;
-    }
-  },
-
-  *saga(action: Action & { type: string }) {
-    if (action.status === null) {
+          options
+        }
+      };
+    },
+    reducer(
+      state: ResourceModuleState,
+      action: Action | PendingAction | SuccessAction
+    ): ResourceModuleState {
       const { resourceType } = action.payload;
 
-      yield put({
-        type: action.type,
-        status: 'pending',
-        payload: action.payload
-      });
+      switch (action.status) {
+        case 'pending': {
+          return setResourcesStatus(state, resourceType, 'find.pending');
+        }
 
-      try {
-        const data = yield call(findAllRequest, action);
+        case 'success': {
+          return setResourcesStatus(
+            addResources(state, action.payload),
+            resourceType,
+            'find.success'
+          );
+        }
+
+        case 'error': {
+          return setResourcesStatus(state, resourceType, 'find.error');
+        }
+
+        default:
+          return state;
+      }
+    },
+
+    *saga(action: Action & { type: string }) {
+      if (action.status === null) {
+        const { resourceType } = action.payload;
 
         yield put({
           type: action.type,
-          status: 'success',
-          payload: {
-            resourceType,
-            ...data
-          }
+          status: 'pending',
+          payload: action.payload
         });
-      } catch (error) {
-        yield put({
-          type: action.type,
-          status: 'error',
-          payload: {
-            resourceType,
-            error
-          }
-        });
+
+        try {
+          const data = yield call(findAllRequest, action, requestConfig);
+
+          yield put({
+            type: action.type,
+            status: 'success',
+            payload: {
+              resourceType,
+              ...data
+            }
+          });
+        } catch (error) {
+          yield put({
+            type: action.type,
+            status: 'error',
+            payload: {
+              resourceType,
+              error
+            }
+          });
+        }
       }
     }
-  }
-});
+  });
+}
 
-function findAllRequest(action) {
+function findAllRequest(action: Action, requestConfig: Object) {
   const { resourceType } = action.payload;
   let url = `/api/${resourceType}`;
 
@@ -133,5 +133,5 @@ function findAllRequest(action) {
     url += `?include=${action.payload.options.include.join(',')}`;
   }
 
-  return request.get(url).then(({ data }) => data);
+  return request.get(url, requestConfig).then(({ data }) => data);
 }

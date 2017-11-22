@@ -56,113 +56,115 @@ export type ErrorAction = {
   }
 };
 
-export default createAsyncOperation({
-  actionType: 'UPDATE',
-  actionCreator(
-    resourceType: ResourceType,
-    resourceID: ResourceID,
-    attributes: { [key: string]: null | string | number | boolean },
-    options?: {
-      relationships?: {
-        [RelationshipName]: { data: Relationship | Array<Relationship> }
+export default function({ requestConfig }: { requestConfig: Object }) {
+  return createAsyncOperation({
+    actionType: 'UPDATE',
+    actionCreator(
+      resourceType: ResourceType,
+      resourceID: ResourceID,
+      attributes: { [key: string]: null | string | number | boolean },
+      options?: {
+        relationships?: {
+          [RelationshipName]: { data: Relationship | Array<Relationship> }
+        }
       }
-    }
-  ): Action {
-    return {
-      status: null,
-      payload: {
-        resourceType,
-        resourceID,
-        attributes,
-        options
-      }
-    };
-  },
-  reducer(
-    state: ResourceModuleState,
-    action: Action | PendingAction | SuccessAction | ErrorAction
-  ): ResourceModuleState {
-    switch (action.status) {
-      case 'pending': {
-        const { resourceType, resourceID } = action.payload;
-
-        return setResourceStatus(
-          state,
+    ): Action {
+      return {
+        status: null,
+        payload: {
           resourceType,
           resourceID,
-          'update.pending'
-        );
-      }
+          attributes,
+          options
+        }
+      };
+    },
+    reducer(
+      state: ResourceModuleState,
+      action: Action | PendingAction | SuccessAction | ErrorAction
+    ): ResourceModuleState {
+      switch (action.status) {
+        case 'pending': {
+          const { resourceType, resourceID } = action.payload;
 
-      case 'success': {
-        const resourceType = getResourceType(action.payload.data);
-
-        const { resourceID, data } = action.payload;
-
-        if (resourceType != null && !Array.isArray(data)) {
           return setResourceStatus(
-            addResources(state, action.payload),
+            state,
             resourceType,
             resourceID,
-            'update.success'
+            'update.pending'
           );
         }
 
-        break;
+        case 'success': {
+          const resourceType = getResourceType(action.payload.data);
+
+          const { resourceID, data } = action.payload;
+
+          if (resourceType != null && !Array.isArray(data)) {
+            return setResourceStatus(
+              addResources(state, action.payload),
+              resourceType,
+              resourceID,
+              'update.success'
+            );
+          }
+
+          break;
+        }
+
+        case 'error': {
+          const { resourceType, resourceID } = action.payload;
+
+          return setResourceStatus(
+            state,
+            resourceType,
+            resourceID,
+            'update.error'
+          );
+        }
       }
 
-      case 'error': {
+      return state;
+    },
+    *saga(action: Action & { type: string }) {
+      if (action.status === null) {
         const { resourceType, resourceID } = action.payload;
 
-        return setResourceStatus(
-          state,
-          resourceType,
-          resourceID,
-          'update.error'
-        );
-      }
-    }
-
-    return state;
-  },
-  *saga(action: Action & { type: string }) {
-    if (action.status === null) {
-      const { resourceType, resourceID } = action.payload;
-
-      yield put({
-        type: action.type,
-        status: 'pending',
-        payload: action.payload
-      });
-
-      try {
-        const data = yield call(updateRequest, action);
-
         yield put({
           type: action.type,
-          status: 'success',
-          payload: {
-            resourceType,
-            resourceID,
-            ...data
-          }
+          status: 'pending',
+          payload: action.payload
         });
-      } catch (error) {
-        yield put({
-          type: action.type,
-          status: 'error',
-          payload: {
-            resourceType,
-            resourceID,
-            error
-          }
-        });
+
+        try {
+          const data = yield call(updateRequest, action, requestConfig);
+
+          yield put({
+            type: action.type,
+            status: 'success',
+            payload: {
+              resourceType,
+              resourceID,
+              ...data
+            }
+          });
+        } catch (error) {
+          yield put({
+            type: action.type,
+            status: 'error',
+            payload: {
+              resourceType,
+              resourceID,
+              error
+            }
+          });
+        }
       }
     }
-  }
-});
+  });
+}
 
-function updateRequest(action: Action) {
+function updateRequest(action: Action, requestConfig: Object) {
   const { resourceType, resourceID } = action.payload;
   const url = `/api/${resourceType}/${resourceID}`;
 
