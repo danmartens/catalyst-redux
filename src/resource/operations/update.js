@@ -169,14 +169,18 @@ function updateRequest(action: Action, requestConfig: Object) {
   const url = `/api/${resourceType}/${resourceID}`;
 
   return request
-    .patch(url, {
-      data: {
-        type: resourceType,
-        id: resourceID,
-        attributes: omit(action.payload.attributes, ['id']),
-        relationships:
-          action.payload.options && action.payload.options.relationships
-      }
-    })
+    .patch(
+      url,
+      {
+        data: {
+          type: resourceType,
+          id: resourceID,
+          attributes: omit(action.payload.attributes, ['id']),
+          relationships:
+            action.payload.options && action.payload.options.relationships
+        }
+      },
+      requestConfig
+    )
     .then(({ data }) => data);
 }
