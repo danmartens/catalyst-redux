@@ -1,11 +1,9 @@
 {
   "name": "catalyst-redux",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "lib/index.js",
   "license": "MIT",
-  "files": [
-    "lib"
-  ],
+  "files": ["lib"],
   "scripts": {
     "test": "jest",
     "prepack": "babel src/ -d lib && flow-copy-source src lib"
