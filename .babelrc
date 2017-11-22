@@ -1,9 +1,10 @@
 {
-  "presets": ["env"],
+  "presets": ["react", "env"],
   "plugins": [
     "transform-flow-strip-types",
     "transform-regenerator",
     "transform-async-to-generator",
-    "transform-object-rest-spread"
+    "transform-object-rest-spread",
+    "transform-class-properties"
   ]
 }
