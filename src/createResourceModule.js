@@ -11,12 +11,16 @@ import destroy from './resource/operations/destroy';
 
 import * as selectors from './resource/selectors';
 
+type MapSelector = <State: *, Arguments: *, Result: *>(
+  (state: State, ...args: Arguments) => Result
+) => (state: Object, ...args: Arguments) => Result;
+
 export default function createResourceModule({
   resourceTypes,
   requestConfig = {}
 }: {
   resourceTypes: Array<string>,
-  requestConfig: {}
+  requestConfig?: {}
 }) {
   return (moduleName: string) => {
     const resourceTypesMap = {};
@@ -24,16 +28,6 @@ export default function createResourceModule({
     resourceTypes.forEach((resourceType: string) => {
       resourceTypesMap[resourceType] = {};
     });
-
-    const mappedSelectors = {};
-
-    for (const name in selectors) {
-      if (selectors.hasOwnProperty(name)) {
-        mappedSelectors[name] = (state: Object, ...args: Array<*>) => {
-          return selectors[name](state[moduleName], ...args);
-        };
-      }
-    }
 
     const initialState: ResourceModuleState = {
       resources: { ...resourceTypesMap },
@@ -52,7 +46,24 @@ export default function createResourceModule({
         update: update({ requestConfig }),
         destroy: destroy({ requestConfig })
       },
-      selectors: mappedSelectors
+      selectors: mapSelectors(moduleName, selectors)
     })(moduleName);
   };
+}
+
+function mapSelectors<Selectors: *>(
+  moduleName: string,
+  selectors: Selectors
+): $ObjMap<Selectors, MapSelector> {
+  const mappedSelectors = {};
+
+  for (const name in selectors) {
+    if (selectors.hasOwnProperty(name)) {
+      mappedSelectors[name] = (state, ...args) => {
+        return selectors[name](state[moduleName], ...args);
+      };
+    }
+  }
+
+  return mappedSelectors;
 }
