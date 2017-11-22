@@ -3,6 +3,8 @@
 import axios from 'axios';
 import { kebabCase, camelCase } from 'lodash';
 
+import deepTransformKeys from './deepTransformKeys';
+
 export default axios.create({
   headers: {
     'Content-Type': 'application/vnd.api+json',
@@ -19,26 +21,3 @@ export default axios.create({
     }
   ]
 });
-
-function deepTransformKeys<O: mixed>(
-  transformKey: string => string,
-  object: O
-): O {
-  if (Array.isArray(object)) {
-    return object.map(o => deepTransformKeys(transformKey, o));
-  } else if (object != null && typeof object === 'object') {
-    const transformedObject = {};
-
-    for (const [key, value] of Object.entries(object)) {
-      transformedObject[transformKey(key)] = deepTransformKeys(
-        transformKey,
-        value
-      );
-    }
-
-    // $FlowFixMe
-    return transformedObject;
-  } else {
-    return object;
-  }
-}
