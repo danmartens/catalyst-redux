@@ -8,9 +8,11 @@ import type {
   ResourceID,
   ResourceType,
   ResourceStatus,
+  RelationshipName,
   JSONAPIDocument,
   JSONAPIResource,
   JSONAPIRelationships,
+  JSONAPIRelationshipData,
   NewJSONAPIResource
 } from '../types';
 
@@ -34,7 +36,10 @@ export function addResource(
     ...state.resourceRelationships,
     [resource.type]: {
       ...state.resourceRelationships[resource.type],
-      [resource.id.toString()]: mapRelationships(resource.relationships)
+      [resource.id.toString()]: mapRelationships(
+        resource.relationships,
+        state.resourceRelationships[resource.type][resource.id.toString()]
+      )
     }
   };
 
@@ -43,6 +48,31 @@ export function addResource(
     resources,
     resourceRelationships
   };
+}
+
+function mapRelationships(
+  relationships: ?JSONAPIRelationships,
+  existingRelationships: ?{ [RelationshipName]: JSONAPIRelationshipData }
+) {
+  if (relationships == null) {
+    return {};
+  }
+
+  if (existingRelationships == null) {
+    existingRelationships = {};
+  }
+
+  const map = existingRelationships;
+
+  for (const relationshipName in relationships) {
+    if (relationships.hasOwnProperty(relationshipName)) {
+      if (relationships[relationshipName].data != null) {
+        map[relationshipName] = relationships[relationshipName].data;
+      }
+    }
+  }
+
+  return map;
 }
 
 export function addNewResource(
@@ -97,22 +127,6 @@ export function removeResource(
   resourceID: ResourceID
 ): ResourceModuleState {
   return dotProp.delete(state, `resources.${resourceType}.${resourceID}`);
-}
-
-function mapRelationships(relationships: ?JSONAPIRelationships) {
-  if (relationships == null) {
-    return {};
-  }
-
-  const map = {};
-
-  for (const relationshipName in relationships) {
-    if (relationships.hasOwnProperty(relationshipName)) {
-      map[relationshipName] = relationships[relationshipName].data;
-    }
-  }
-
-  return map;
 }
 
 export function setResourceStatus(

@@ -25,9 +25,11 @@ export type ResourceStatus =
   | 'destroy.success'
   | 'destroy.error';
 
+export type JSONAPIRelationshipData = Relationship | Array<Relationship>;
+
 export type JSONAPIRelationships = {
   [RelationshipName]: {
-    data: Relationship | Array<Relationship>
+    data: JSONAPIRelationshipData
   }
 };
 
