@@ -4,6 +4,7 @@ import createModule from './createModule';
 
 import type { ResourceModuleState } from './types';
 
+import find from './resource/operations/find';
 import findAll from './resource/operations/findAll';
 import create from './resource/operations/create';
 import update from './resource/operations/update';
@@ -41,6 +42,7 @@ export default function createResourceModule({
     return createModule({
       initialState,
       operations: {
+        find: find({ requestConfig }),
         findAll: findAll({ requestConfig }),
         create: create({ requestConfig }),
         update: update({ requestConfig }),

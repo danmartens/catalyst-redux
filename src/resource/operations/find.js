@@ -6,12 +6,13 @@ import { put, call } from 'redux-saga/effects';
 import createAsyncOperation from '../../createAsyncOperation';
 
 import request from '../../utils/request';
-import { addResources, setResourcesStatus } from '../../utils/resources';
+import { addResources, setResourceStatus } from '../../utils/resources';
 import buildFindQuery from '../../utils/buildFindQuery';
 
 import type {
   JSONAPIDocument,
   ResourceType,
+  ResourceID,
   ResourceModuleState,
   RelationshipName,
   Relationship
@@ -26,6 +27,7 @@ export type Action = {
   status: null,
   payload: {
     resourceType: ResourceType,
+    resourceID: ResourceID,
     options: Options
   }
 };
@@ -38,7 +40,8 @@ export type PendingAction = {
 export type SuccessAction = {
   status: 'success',
   payload: JSONAPIDocument & {
-    resourceType: ResourceType
+    resourceType: ResourceType,
+    resourceID: ResourceID
   }
 };
 
@@ -46,18 +49,24 @@ export type ErrorAction = {
   status: 'error',
   payload: {
     resourceType: ResourceType,
+    resourceID: ResourceID,
     error: Error
   }
 };
 
 export default function({ requestConfig }: { requestConfig: Object }) {
   return createAsyncOperation({
-    actionType: 'FIND_ALL',
-    actionCreator(resourceType: ResourceType, options: Options = {}) {
+    actionType: 'FIND',
+    actionCreator(
+      resourceType: ResourceType,
+      resourceID: ResourceID,
+      options: Options = {}
+    ) {
       return {
         status: null,
         payload: {
           resourceType,
+          resourceID,
           options
         }
       };
@@ -66,23 +75,34 @@ export default function({ requestConfig }: { requestConfig: Object }) {
       state: ResourceModuleState,
       action: Action | PendingAction | SuccessAction
     ): ResourceModuleState {
-      const { resourceType } = action.payload;
+      const { resourceType, resourceID } = action.payload;
 
       switch (action.status) {
         case 'pending': {
-          return setResourcesStatus(state, resourceType, 'find.pending');
+          return setResourceStatus(
+            state,
+            resourceType,
+            resourceID,
+            'find.pending'
+          );
         }
 
         case 'success': {
-          return setResourcesStatus(
+          return setResourceStatus(
             addResources(state, action.payload),
             resourceType,
+            resourceID,
             'find.success'
           );
         }
 
         case 'error': {
-          return setResourcesStatus(state, resourceType, 'find.error');
+          return setResourceStatus(
+            state,
+            resourceType,
+            resourceID,
+            'find.error'
+          );
         }
 
         default:
@@ -92,7 +112,7 @@ export default function({ requestConfig }: { requestConfig: Object }) {
 
     *saga(action: Action & { type: string }) {
       if (action.status === null) {
-        const { resourceType } = action.payload;
+        const { resourceType, resourceID } = action.payload;
 
         yield put({
           type: action.type,
@@ -101,13 +121,14 @@ export default function({ requestConfig }: { requestConfig: Object }) {
         });
 
         try {
-          const data = yield call(findAllRequest, action, requestConfig);
+          const data = yield call(findRequest, action, requestConfig);
 
           yield put({
             type: action.type,
             status: 'success',
             payload: {
               resourceType,
+              resourceID,
               ...data
             }
           });
@@ -117,6 +138,7 @@ export default function({ requestConfig }: { requestConfig: Object }) {
             status: 'error',
             payload: {
               resourceType,
+              resourceID,
               error
             }
           });
@@ -126,9 +148,11 @@ export default function({ requestConfig }: { requestConfig: Object }) {
   });
 }
 
-function findAllRequest(action: Action, requestConfig: Object) {
-  const { resourceType } = action.payload;
-  const url = `/api/${resourceType}${buildFindQuery(action.payload.options)}`;
+function findRequest(action: Action, requestConfig: Object) {
+  const { resourceType, resourceID } = action.payload;
+  const url = `/api/${resourceType}/${resourceID}${buildFindQuery(
+    action.payload.options
+  )}`;
 
   return request.get(url, requestConfig).then(({ data }) => data);
 }

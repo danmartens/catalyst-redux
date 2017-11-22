@@ -70,12 +70,20 @@ function defineRelationships(state, resourceType, resourceID, record) {
               return relationshipData.map((relationshipDatum: Object) =>
                 buildRecord(state, relationshipDatum.type, relationshipDatum.id)
               );
-            } else {
+            } else if (
+              relationshipData != null &&
+              typeof relationshipData === 'object' &&
+              typeof relationshipData.type === 'string' &&
+              (typeof relationshipData.id === 'string' ||
+                typeof relationshipData.id === 'number')
+            ) {
               return buildRecord(
                 state,
                 relationshipData.type,
                 relationshipData.id
               );
+            } else {
+              return null;
             }
           }
         });
