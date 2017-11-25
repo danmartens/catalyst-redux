@@ -8,6 +8,9 @@
     "test": "jest",
     "prepack": "babel src/ -d lib && flow-copy-source src lib"
   },
+  "jest": {
+    "modulePaths": ["<rootDir>/"]
+  },
   "dependencies": {
     "axios": "^0.17.1",
     "dot-prop-immutable": "^1.4.0",
