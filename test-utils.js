@@ -1,6 +1,6 @@
 import { createStore, applyMiddleware, combineReducers } from 'redux';
 import createSagaMiddleware from 'redux-saga';
-import createResourceModule from 'src/createResourceModule';
+import { createResourceModule } from 'src';
 
 export const Resources = createResourceModule({
   resourceTypes: ['posts', 'comments']

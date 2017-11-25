@@ -10,16 +10,16 @@ import type {
   ResourceModuleState
 } from './types';
 
-type ResourceFormProps = {
+type ResourceProps = {
   resourceID?: ResourceID
 };
 
-type ResourceFormState = { resourceClientID: ?ResourceClientID };
+type ResourceState = { resourceClientID: ?ResourceClientID };
 
 type ConnectedComponentProps = {
   onResourceCreate: (resourceClientID: ResourceClientID) => void
-} & ResourceFormProps &
-  ResourceFormState;
+} & ResourceProps &
+  ResourceState;
 
 type WrappedComponentConnectProps = {
   resource: ?Object,
@@ -28,7 +28,7 @@ type WrappedComponentConnectProps = {
   onUpdate: (attributes: Object, options?: Object) => void
 };
 
-export type ResourceFormProvidedProps<
+export type ResourceProvidedProps<
   WrappedComponentProps
 > = ConnectedComponentProps &
   WrappedComponentConnectProps &
@@ -40,12 +40,12 @@ export type ResourceFormProvidedProps<
  * new resource and passes the creation status and (if successful) the created
  * resource to the wrapped component.
  */
-export default function connectResourceForm(
+export default function connectResource(
   resourcesModule: Object,
   resourceType: string
 ) {
   return function<Props: {}>(
-    WrappedComponent: React.ComponentType<ResourceFormProps & Props>
+    WrappedComponent: React.ComponentType<ResourceProps & Props>
   ): React.ComponentType<Props> {
     const mapStateToProps = (
       state: { resources: ResourceModuleState },
@@ -123,6 +123,15 @@ export default function connectResourceForm(
           } else {
             // TODO: Handle unexpected state
           }
+        },
+        onDestroy() {
+          if (props.resourceID != null) {
+            dispatch(
+              resourcesModule.actions.destroy(resourceType, props.resourceID)
+            );
+          } else {
+            // TODO: Handle unexpected state
+          }
         }
       };
     };
@@ -132,7 +141,7 @@ export default function connectResourceForm(
       mapDispatchToProps
     )(WrappedComponent);
 
-    class ResourceForm extends React.PureComponent<Props, ResourceFormState> {
+    class Resource extends React.PureComponent<Props, ResourceState> {
       state = { resourceClientID: null };
 
       handleResourceCreate = (resourceClientID: ResourceClientID) => {
@@ -150,11 +159,9 @@ export default function connectResourceForm(
       }
     }
 
-    ResourceForm.displayName = `ResourceForm(${getDisplayName(
-      WrappedComponent
-    )})`;
+    Resource.displayName = `Resource(${getDisplayName(WrappedComponent)})`;
 
-    return ResourceForm;
+    return Resource;
   };
 }
 
