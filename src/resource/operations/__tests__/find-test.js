@@ -3,51 +3,54 @@ import { createResourceStore, nextState, Resources } from 'test-utils';
 
 test('find operation', async () => {
   const store = createResourceStore();
-  let state = store.getState();
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse(
     'GET',
     {
       data: {
         type: 'posts',
-        id: '3',
+        id: '1',
         attributes: { title: 'Something New' }
       }
     },
     200
   );
 
-  await nextState(store, Resources.actions.find('posts', 3));
+  await nextState(store, Resources.actions.find('posts', 1));
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', 3)).toEqual(
-    'find.pending'
-  );
+  expect(getPost().isLoading).toEqual(true);
+  expect(getPost().isLoaded).toEqual(false);
+  expect(getPost().isPending).toEqual(true);
+  expect(getPost().isError).toEqual(false);
 
   await nextState(store);
 
-  expect(Resources.selectors.find(store.getState(), 'posts', 3)).toEqual({
-    id: '3',
-    title: 'Something New'
-  });
+  expect(getPost().isLoading).toEqual(false);
+  expect(getPost().isLoaded).toEqual(true);
+  expect(getPost().isPending).toEqual(false);
+  expect(getPost().isError).toEqual(false);
+
+  expect(getPost().id).toEqual('1');
+  expect(getPost().title).toEqual('Something New');
 });
 
 test('find operation failed', async () => {
   const store = createResourceStore();
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse('GET', {}, 401);
 
-  await nextState(store, Resources.actions.find('posts', 4));
+  expect(getPost()).toEqual(null);
 
-  expect(
-    Resources.selectors.resourceStatus(store.getState(), 'posts', 4)
-  ).toEqual('find.pending');
+  await nextState(store, Resources.actions.find('posts', 1));
+
+  expect(getPost().isPending).toEqual(true);
 
   await nextState(store);
 
   expect(
-    Resources.selectors.resourceStatus(store.getState(), 'posts', 4)
+    Resources.selectors.resourceStatus(store.getState(), 'posts', 1)
   ).toEqual('find.error');
 
   expect(Resources.selectors.findAll(store.getState(), 'posts')).toEqual([]);

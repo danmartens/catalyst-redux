@@ -97,16 +97,10 @@ export default function({ requestConfig }: { requestConfig: Object }) {
 
         case 'success': {
           const resourceType = getResourceType(action.payload.data);
-
           const { resourceID, data } = action.payload;
 
           if (resourceType != null && !Array.isArray(data)) {
-            return setResourceStatus(
-              addResources(state, action.payload),
-              resourceType,
-              resourceID,
-              'update.success'
-            );
+            return addResources(state, action.payload, 'update.success');
           }
 
           break;

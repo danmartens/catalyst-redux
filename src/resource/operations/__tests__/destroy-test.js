@@ -8,64 +8,41 @@ import {
 
 test('destroy operation', async () => {
   const store = createResourceStore(stateWithData);
-  let state = store.getState();
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse('DELETE', {}, 200);
 
   await nextState(store, Resources.actions.destroy('posts', '1'));
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'destroy.pending'
-  );
+  expect(getPost().isPending).toEqual(true);
+  expect(getPost().isDestroying).toEqual(true);
 
   await nextState(store);
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'destroy.success'
-  );
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([]);
+  expect(getPost().isPending).toEqual(false);
+  expect(getPost().isError).toEqual(false);
+  expect(getPost().isDestroying).toEqual(false);
+  expect(getPost().isDestroyed).toEqual(true);
 });
 
 test('destroy operation failed', async () => {
   const store = createResourceStore(stateWithData);
-
-  expect(Resources.selectors.findAll(store.getState(), 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse('DELETE', {}, 401);
 
   await nextState(store, Resources.actions.destroy('posts', '1'));
 
-  expect(
-    Resources.selectors.resourceStatus(store.getState(), 'posts', '1')
-  ).toEqual('destroy.pending');
+  expect(getPost().isPending).toEqual(true);
+  expect(getPost().isDestroying).toEqual(true);
 
   await nextState(store);
 
-  // expect(
-  //   Resources.selectors.resourceStatus(store.getState(), 'posts', '1')
-  // ).toEqual('destroy.error');
+  expect(getPost().isPending).toEqual(false);
+  expect(getPost().isError).toEqual(true);
+  expect(getPost().isDestroying).toEqual(false);
+  expect(getPost().isDestroyed).toEqual(false);
 
-  expect(Resources.selectors.findAll(store.getState(), 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  expect(getPost().id).toEqual('1');
+  expect(getPost().title).toEqual('First Post');
 });

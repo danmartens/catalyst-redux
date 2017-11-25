@@ -74,11 +74,7 @@ export default function({ requestConfig }: { requestConfig: Object }) {
         }
 
         case 'success': {
-          return setResourcesStatus(
-            addResources(state, action.payload),
-            resourceType,
-            'find.success'
-          );
+          return addResources(state, action.payload);
         }
 
         case 'error': {

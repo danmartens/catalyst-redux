@@ -64,18 +64,6 @@ test('builds an initial state', () => {
   });
 });
 
-test('adds resources to the state', () => {
-  const store = createResourceStore(stateWithData);
-  const posts = Resources.selectors.findAll(store.getState(), 'posts');
-
-  expect(posts).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
-});
-
 test('find returns the same object across multiple calls with the same state', () => {
   const store = createResourceStore(stateWithData);
   const firstPost = Resources.selectors.find(store.getState(), 'posts', '1');

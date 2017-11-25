@@ -18,7 +18,8 @@ import type {
 
 export function addResource(
   state: ResourceModuleState,
-  resource: JSONAPIResource
+  resource: JSONAPIResource,
+  initialStatus: ResourceStatus = 'find.success'
 ): ResourceModuleState {
   if (state.resources[resource.type] == null) {
     return state;
@@ -42,6 +43,8 @@ export function addResource(
       )
     }
   };
+
+  state = setResourceStatus(state, resource.type, resource.id, initialStatus);
 
   return {
     ...state,
@@ -102,19 +105,20 @@ export function addNewResource(
 
 export function addResources(
   state: ResourceModuleState,
-  resources: JSONAPIDocument
+  resources: JSONAPIDocument,
+  initialStatus: ResourceStatus = 'find.success'
 ): ResourceModuleState {
   if (resources.data instanceof Array) {
     resources.data.forEach(resource => {
-      state = addResource(state, resource);
+      state = addResource(state, resource, initialStatus);
     });
   } else {
-    state = addResource(state, resources.data);
+    state = addResource(state, resources.data, initialStatus);
   }
 
   if (resources.included instanceof Array) {
     resources.included.forEach(resource => {
-      state = addResource(state, resource);
+      state = addResource(state, resource, initialStatus);
     });
   }
 

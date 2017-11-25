@@ -88,12 +88,7 @@ export default function({ requestConfig }: { requestConfig: Object }) {
         }
 
         case 'success': {
-          return setResourceStatus(
-            addResources(state, action.payload),
-            resourceType,
-            resourceID,
-            'find.success'
-          );
+          return addResources(state, action.payload);
         }
 
         case 'error': {

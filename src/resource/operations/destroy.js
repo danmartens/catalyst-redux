@@ -21,6 +21,28 @@ export type Action = {
   }
 };
 
+type PendingAction = {
+  status: 'pending',
+  payload: $PropertyType<Action, 'payload'>
+};
+
+type SuccessAction = {
+  status: 'success',
+  payload: {
+    resourceType: ResourceType,
+    resourceID: ResourceID
+  }
+};
+
+export type ErrorAction = {
+  status: 'error',
+  payload: {
+    resourceType: ResourceType,
+    resourceID: ResourceID,
+    error: Error
+  }
+};
+
 export default function({ requestConfig }: { requestConfig: Object }) {
   return createAsyncOperation({
     actionType: 'DESTROY',
@@ -70,26 +92,34 @@ export default function({ requestConfig }: { requestConfig: Object }) {
     },
     *saga(action: Action & { type: string }) {
       if (action.status === null) {
-        yield put({
-          type: action.type,
-          status: 'pending',
-          payload: action.payload
-        });
+        const { resourceType, resourceID } = action.payload;
+
+        yield put(
+          ({
+            type: action.type,
+            status: 'pending',
+            payload: { resourceType, resourceID }
+          }: PendingAction)
+        );
 
         try {
           yield call(destroyRequest, action, requestConfig);
 
-          yield put({
-            type: action.type,
-            status: 'success',
-            payload: action.payload
-          });
+          yield put(
+            ({
+              type: action.type,
+              status: 'success',
+              payload: { resourceType, resourceID }
+            }: SuccessAction)
+          );
         } catch (error) {
-          yield put({
-            type: action.type,
-            status: 'error',
-            payload: error
-          });
+          yield put(
+            ({
+              type: action.type,
+              status: 'error',
+              payload: { error, resourceType, resourceID }
+            }: ErrorAction)
+          );
         }
       }
     }

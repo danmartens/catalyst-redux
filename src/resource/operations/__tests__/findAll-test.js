@@ -3,7 +3,7 @@ import { createResourceStore, nextState, Resources } from 'test-utils';
 
 test('findAll operation', async () => {
   const store = createResourceStore();
-  let state = store.getState();
+  const getPosts = () => Resources.selectors.findAll(store.getState(), 'posts');
 
   axios.__setNextResponse(
     'GET',
@@ -21,22 +21,16 @@ test('findAll operation', async () => {
 
   await nextState(store, Resources.actions.findAll('posts'));
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourcesStatus(state, 'posts')).toEqual(
-    'find.pending'
-  );
+  expect(
+    Resources.selectors.resourcesStatus(store.getState(), 'posts')
+  ).toEqual('find.pending');
 
   await nextState(store);
 
   const posts = Resources.selectors.findAll(store.getState(), 'posts');
 
-  expect(posts).toEqual([
-    {
-      id: '2',
-      title: 'Hello World'
-    }
-  ]);
+  expect(getPosts()[0].id).toEqual('2');
+  expect(getPosts()[0].title).toEqual('Hello World');
 });
 
 test('findAll operation failed', async () => {

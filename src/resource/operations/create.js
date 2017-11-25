@@ -9,6 +9,7 @@ import request from '../../utils/request';
 
 import {
   addResources,
+  setResourceStatus,
   addNewResource,
   setNewResourceStatus,
   setNewResourceIDMap,
@@ -18,6 +19,7 @@ import {
 import type {
   JSONAPIDocument,
   ResourceType,
+  ResourceID,
   ResourceClientID,
   ResourceModuleState,
   RelationshipName,
@@ -47,6 +49,7 @@ type SuccessAction = {
   status: 'success',
   payload: JSONAPIDocument & {
     resourceType: ResourceType,
+    resourceID: ResourceID,
     clientID: ResourceClientID
   }
 };
@@ -90,37 +93,51 @@ export default function({ requestConfig }: { requestConfig: Object }) {
         case 'pending': {
           const { clientID, resourceType, attributes } = action.payload;
 
-          return setNewResourceStatus(
-            addNewResource(state, clientID, {
-              type: resourceType,
-              attributes
-            }),
+          state = addNewResource(state, clientID, {
+            type: resourceType,
+            attributes
+          });
+
+          state = setNewResourceStatus(
+            state,
             resourceType,
             clientID,
             'create.pending'
           );
+
+          return state;
         }
 
         case 'success': {
           const resourceType = getResourceType(action.payload.data);
-
-          const { data } = action.payload;
+          const { resourceID, clientID, data } = action.payload;
 
           if (resourceType != null && !Array.isArray(data)) {
-            return setNewResourceIDMap(
-              setNewResourceStatus(
-                addResources(state, action.payload),
-                resourceType,
-                action.payload.clientID,
-                'create.success'
-              ),
+            state = addResources(state, action.payload);
+
+            state = setResourceStatus(
+              state,
               resourceType,
-              action.payload.clientID,
-              data.id
+              resourceID,
+              'create.success'
+            );
+
+            state = setNewResourceStatus(
+              state,
+              resourceType,
+              clientID,
+              'create.success'
+            );
+
+            state = setNewResourceIDMap(
+              state,
+              resourceType,
+              clientID,
+              resourceID
             );
           }
 
-          break;
+          return state;
         }
 
         case 'error': {
@@ -148,15 +165,16 @@ export default function({ requestConfig }: { requestConfig: Object }) {
         });
 
         try {
-          const data = yield call(createRequest, action, requestConfig);
+          const response = yield call(createRequest, action, requestConfig);
 
           yield put({
             type: action.type,
             status: 'success',
             payload: {
               resourceType,
+              resourceID: response.data.id,
               clientID,
-              ...data
+              ...response
             }
           });
         } catch (error) {

@@ -4,13 +4,14 @@ import { createResourceStore, nextState, Resources } from 'test-utils';
 test('create operation', async () => {
   const store = createResourceStore();
   const action = Resources.actions.create('posts', { title: 'Hello World' });
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse(
     'POST',
     {
       data: {
         type: 'posts',
-        id: '2',
+        id: '1',
         attributes: { title: 'Hello World' }
       }
     },
@@ -27,6 +28,8 @@ test('create operation', async () => {
     )
   ).toEqual('create.pending');
 
+  expect(getPost()).toEqual(null);
+
   await nextState(store);
 
   expect(
@@ -37,23 +40,10 @@ test('create operation', async () => {
     )
   ).toEqual('create.success');
 
-  expect(
-    Resources.selectors.resourceForClientID(
-      store.getState(),
-      'posts',
-      action.payload.clientID
-    )
-  ).toEqual({
-    id: '2',
-    title: 'Hello World'
-  });
-
-  expect(Resources.selectors.findAll(store.getState(), 'posts')).toEqual([
-    {
-      id: '2',
-      title: 'Hello World'
-    }
-  ]);
+  expect(getPost().id).toEqual('1');
+  expect(getPost().title).toEqual('Hello World');
+  expect(getPost().isPending).toEqual(false);
+  expect(getPost().isError).toEqual(false);
 });
 
 test('create operation failed', async () => {

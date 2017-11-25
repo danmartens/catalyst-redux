@@ -8,14 +8,7 @@ import {
 
 test('update operation', async () => {
   const store = createResourceStore(stateWithData);
-  let state = store.getState();
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse(
     'PATCH',
@@ -36,38 +29,21 @@ test('update operation', async () => {
     })
   );
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'update.pending'
-  );
+  expect(getPost().isUpdating).toEqual(true);
+  expect(getPost().isPending).toEqual(true);
 
   await nextState(store);
 
-  state = store.getState();
+  expect(getPost().isUpdating).toEqual(false);
+  expect(getPost().isPending).toEqual(false);
 
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'update.success'
-  );
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post Edited'
-    }
-  ]);
+  expect(getPost().id).toEqual('1');
+  expect(getPost().title).toEqual('First Post Edited');
 });
 
 test('update operation failed', async () => {
   const store = createResourceStore(stateWithData);
-  let state = store.getState();
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  const getPost = () => Resources.selectors.find(store.getState(), 'posts', 1);
 
   axios.__setNextResponse('PATCH', {}, 422);
 
@@ -78,24 +54,12 @@ test('update operation failed', async () => {
     })
   );
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'update.pending'
-  );
+  expect(getPost().isUpdating).toEqual(true);
+  expect(getPost().isPending).toEqual(true);
 
   await nextState(store);
 
-  state = store.getState();
-
-  expect(Resources.selectors.resourceStatus(state, 'posts', '1')).toEqual(
-    'update.error'
-  );
-
-  expect(Resources.selectors.findAll(state, 'posts')).toEqual([
-    {
-      id: '1',
-      title: 'First Post'
-    }
-  ]);
+  expect(getPost().isUpdating).toEqual(false);
+  expect(getPost().isPending).toEqual(false);
+  expect(getPost().isError).toEqual(true);
 });

@@ -35,15 +35,15 @@ export function resourceStatus(
   state: ResourceModuleState,
   resourceType: ResourceType,
   resourceID: ?ResourceID
-): ResourceStatus {
+): ?ResourceStatus {
   if (resourceID == null) {
-    return null;
+    return undefined;
   }
 
   const statusesForType = state.resourceStatus[resourceType];
 
   if (statusesForType == null || typeof statusesForType === 'string') {
-    return null;
+    return undefined;
   }
 
   return statusesForType[resourceID];

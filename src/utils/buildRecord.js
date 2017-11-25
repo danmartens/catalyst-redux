@@ -1,6 +1,13 @@
 // @flow
 
-import type { ResourceModuleState, ResourceType, ResourceID } from '../types';
+import type {
+  ResourceModuleState,
+  ResourceType,
+  ResourceID,
+  ResourceStatus
+} from '../types';
+
+import { resourceStatus } from '../resource/selectors';
 
 const recordsCache = new WeakMap();
 
@@ -8,7 +15,7 @@ export default function buildRecord(
   state: ResourceModuleState,
   resourceType: ResourceType,
   resourceID: ResourceID
-) {
+): null | Record {
   let existingRecords = recordsCache.get(state);
 
   if (existingRecords == null) {
@@ -23,23 +30,12 @@ export default function buildRecord(
     return existingRecords[resourceType][resourceID];
   }
 
-  const resources = state.resources[resourceType];
-
-  if (resources == null) {
+  // If the resource doesn't have a status in the state, return null.
+  if (resourceStatus(state, resourceType, resourceID) === undefined) {
     return null;
   }
 
-  const resource = resources[resourceID];
-
-  if (resource == null) {
-    return null;
-  }
-
-  const record = { ...resource };
-
-  defineRelationships(state, resourceType, resourceID, record);
-
-  Object.freeze(record);
+  const record = new Record(state, resourceType, resourceID);
 
   existingRecords = {
     ...existingRecords,
@@ -54,7 +50,72 @@ export default function buildRecord(
   return record;
 }
 
-function defineRelationships(state, resourceType, resourceID, record) {
+const pendingStatuses = Object.freeze([
+  'find.pending',
+  'create.pending',
+  'update.pending',
+  'destroy.pending'
+]);
+
+const errorStatuses = Object.freeze([
+  'find.error',
+  'create.error',
+  'update.error',
+  'destroy.error'
+]);
+
+class Record {
+  __status: ?ResourceStatus;
+
+  constructor(
+    state: ResourceModuleState,
+    resourceType: ResourceType,
+    resourceID: ResourceID
+  ) {
+    this.__status = resourceStatus(state, resourceType, resourceID);
+
+    if (
+      state.resources[resourceType] != null &&
+      state.resources[resourceType][resourceID] != null
+    ) {
+      Object.assign(this, state.resources[resourceType][resourceID]);
+    }
+
+    defineRelationships(this, state, resourceType, resourceID);
+
+    Object.freeze(this);
+  }
+
+  get isPending() {
+    return pendingStatuses.indexOf(this.__status) > -1;
+  }
+
+  get isError() {
+    return errorStatuses.indexOf(this.__status) > -1;
+  }
+
+  get isLoading() {
+    return this.__status === 'find.pending';
+  }
+
+  get isLoaded() {
+    return this.__status !== 'find.pending' && !this.isDestroyed;
+  }
+
+  get isUpdating() {
+    return this.__status === 'update.pending';
+  }
+
+  get isDestroying() {
+    return this.__status === 'destroy.pending';
+  }
+
+  get isDestroyed() {
+    return this.__status === 'destroy.success';
+  }
+}
+
+function defineRelationships(record, state, resourceType, resourceID) {
   const resourceRelationships = state.resourceRelationships[resourceType];
 
   if (resourceRelationships != null) {
